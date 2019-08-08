@@ -1,0 +1,9 @@
+trigger EnvelopeTrigger on Envelope__c (before insert) {
+    if(trigger.isBefore && trigger.isInsert){
+        EnvelopeHelper.setRemaining(trigger.new);
+        if(!CheckRecursiveEnvelopeTrigger.insertingMaster()) {  //will not fire if we are inserting master as this creates infinite loop
+            EnvelopeHelper.linkToMaster(Trigger.new);
+        }
+    }   
+
+}
