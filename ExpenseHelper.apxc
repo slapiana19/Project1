@@ -1,0 +1,56 @@
+public class ExpenseHelper {
+    // adds the value of an expense to related bank accounts and envelopes and subtracts if it is an insert
+    public static void updateEnvelopeAndBankAccount(List<Expense__c> expenses, Boolean isDeletion){ 
+        List<BankAccount__c> bankAccounts = new List<BankAccount__c>();
+        List<Envelope__c> envelopes = new List<Envelope__c>();
+        Envelope__c masterEnvelope = [SELECT id, Budget__c, Remaining__c FROM Envelope__c WHERE name =: 'Master']; 
+        for(Expense__c expense : expenses){
+            // find envelope and bank account
+            Decimal amount = expense.Amount__c;
+            Envelope__c envelope = [SELECT id, Budget__c, Remaining__c FROM Envelope__c WHERE id =: expense.Envelope__c];
+            BankAccount__c bankAccount = [SELECT id, Balance__c FROM BankAccount__c WHERE id =: expense.Bank_Account__c];
+            if(isDeletion){ // add the amount of the expense back into envelope and bankAccount
+                envelope.Remaining__c += amount;
+                masterEnvelope.Remaining__c += amount;
+                bankAccount.Balance__c += amount;   
+            }
+            else{ // subtract the amount of the expense from the envelope and bankAccount
+                envelope.Remaining__c -= amount;
+                masterEnvelope.Remaining__c -= amount;
+                bankAccount.Balance__c -= amount;
+            }
+            
+            envelopes.add(envelope);
+            bankAccounts.add(bankAccount);
+        }
+        envelopes.add(masterEnvelope); // we add the master to our list of envelopes to have few dml statements
+        update envelopes;
+        update bankAccounts;
+    }
+    
+    public static void handleExpenseUpdate(List<Expense__c> oldExpenses, List<Expense__c> newExpenses){
+        List<Decimal> changes = new List<Decimal>(); //a list of the change in the expense values
+        List<BankAccount__c> bankAccounts = new List<BankAccount__c>();
+        List<Envelope__c> envelopes = new List<Envelope__c>();
+        for(Integer i=0; i<oldExpenses.size(); i++){ //iterate through all old and new expenses
+            // find envelope and bank account
+            Expense__c expense = newExpenses[i]; //new version of expense
+            Decimal changeInAmount = expense.Amount__c - oldExpenses[i].Amount__c;
+            Envelope__c envelope = [SELECT id, Budget__c, Remaining__c FROM Envelope__c WHERE id =: expense.Envelope__c];
+            BankAccount__c bankAccount = [SELECT id, Balance__c FROM BankAccount__c WHERE id =: expense.Bank_Account__c];
+            envelope.Remaining__c -= changeInAmount;
+            bankAccount.Balance__c -= changeInAmount;
+            
+            
+            envelopes.add(envelope);
+            bankAccounts.add(bankAccount);
+        }
+        
+        update envelopes;
+        update bankAccounts;
+        
+    }
+    
+    
+    
+}
