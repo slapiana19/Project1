@@ -1,0 +1,36 @@
+public class EnvelopeHelper {
+    public static void setRemaining(List<Envelope__c> envelopes){
+        for(Envelope__c envelope : envelopes){
+            envelope.Remaining__c = envelope.Budget__c;
+        }
+    }
+    
+    // upon the creation of a new envelope record create a lookup relationship to the master envelope
+    // if the master does not yet exist we must create it first
+    public static void linkToMaster(List<Envelope__c> envelopes){
+        // first try to get master envelope
+       Envelope__c master;
+        Id currentUserId = UserInfo.getUserId();
+        try{
+            master = [SELECT id, OwnerId, name, Budget__c, Remaining__c FROM Envelope__c WHERE name = 'Master' AND OwnerId =: currentUserId LIMIT 1]; // get current user's master
+        }
+        catch(System.QueryException e){ //the master envelope has not yet been created
+            System.debug('Catch entered');
+            Id masterRecordTypeId = Schema.SObjectType.Envelope__c.getRecordTypeInfosByDeveloperName()
+                      .get('Master_Envelope').getRecordTypeId();
+            master = new Envelope__c(name='Master', RecordTypeId=masterRecordTypeId, OwnerId=currentUserId, Remaining__c=0, Budget__c=0); // we create a master envelope
+            
+            checkRecursiveEnvelopeTrigger.insertingMaster = true;
+            insert master;
+            checkRecursiveEnvelopeTrigger.insertingMaster = false;
+        }
+        for(Envelope__c envelope : envelopes){
+            envelope.LinkedEnvelope__c = master.Id; // we create a lookup relationship
+            master.Budget__c += envelope.Budget__c; // master budget will be the sum of all budgets
+            master.Remaining__c += envelope.Remaining__c; 
+        }
+        update master;
+        
+    }
+
+}
