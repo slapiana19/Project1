@@ -1,0 +1,13 @@
+trigger ExpenseTrigger on Expense__c (after insert, before delete, after update) {
+    if(trigger.isInsert && trigger.isAfter){
+        System.debug('the if statement fired.');
+    	ExpenseHelper.updateEnvelopeAndBankAccount(trigger.new, trigger.isDelete);
+    }
+    if(trigger.isDelete && trigger.isBefore){
+        ExpenseHelper.updateEnvelopeAndBankAccount(trigger.old, trigger.isDelete);
+    }
+    if(trigger.isUpdate && trigger.isAfter){
+        ExpenseHelper.handleExpenseUpdate(trigger.old, trigger.new);
+    }
+    
+}
