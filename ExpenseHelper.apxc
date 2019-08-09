@@ -3,7 +3,8 @@ public class ExpenseHelper {
     public static void updateEnvelopeAndBankAccount(List<Expense__c> expenses, Boolean isDeletion){ 
         List<BankAccount__c> bankAccounts = new List<BankAccount__c>();
         List<Envelope__c> envelopes = new List<Envelope__c>();
-        Envelope__c masterEnvelope = [SELECT id, Budget__c, Remaining__c FROM Envelope__c WHERE name =: 'Master']; 
+        Id currentUserId = UserInfo.getUserId();
+        Envelope__c masterEnvelope = [SELECT id, Budget__c, Remaining__c FROM Envelope__c WHERE name =: 'Master' AND OwnerId =: currentUserId LIMIT 1]; 
         for(Expense__c expense : expenses){
             // find envelope and bank account
             Decimal amount = expense.Amount__c;
@@ -18,6 +19,10 @@ public class ExpenseHelper {
                 envelope.Remaining__c -= amount;
                 masterEnvelope.Remaining__c -= amount;
                 bankAccount.Balance__c -= amount;
+            }
+            
+            if(bankAccount.Balance__c < 0){
+                expense.addError('You have insufficient funds for this expense.');
             }
             
             envelopes.add(envelope);
@@ -41,6 +46,10 @@ public class ExpenseHelper {
             envelope.Remaining__c -= changeInAmount;
             bankAccount.Balance__c -= changeInAmount;
             
+            if(bankAccount.Balance__c < 0){
+                expense.addError('You have insufficient funds for this expense.');
+            }
+            
             
             envelopes.add(envelope);
             bankAccounts.add(bankAccount);
@@ -49,7 +58,10 @@ public class ExpenseHelper {
         update envelopes;
         update bankAccounts;
         
+        
     }
+    
+    
     
     
     
