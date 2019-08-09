@@ -5,6 +5,14 @@ public class EnvelopeHelper {
         }
     }
     
+     public static void preventNegativeBudget(List<Envelope__c> envelopes){
+        for(Envelope__c envelope : envelopes){
+            if(envelope.Budget__c < 0){
+                envelope.addError('Envelopes cannot have a negative budget.');
+            }
+        }
+    }
+    
     // upon the creation of a new envelope record create a lookup relationship to the master envelope
     // if the master does not yet exist we must create it first
     public static void linkToMaster(List<Envelope__c> envelopes){
