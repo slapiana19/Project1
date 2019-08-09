@@ -1,0 +1,44 @@
+public class DepositHelper {
+    public static void preventNegatives(List<Deposit__c> deposits){
+        for(Deposit__c deposit : deposits){
+            if(deposit.Amount__c < 0){
+                deposit.addError('deposits cannot be negative.');
+            }
+        }
+    }
+    
+    public static void updateBankAccountOnInsert(List<Deposit__c> deposits){
+        List<BankAccount__c> bankAccounts = [SELECT id, Balance__c FROM BankAccount__c];
+        List<BankAccount__c> updatedBankAccounts = new List<BankAccount__c>(); //store updated accounts so we can update them (dml)
+        for(Deposit__c deposit: deposits){
+            id bankAccountId = deposit.Bank_Account__c; //the id of the bank account we want to update
+            for(BankAccount__c bankAccount : bankAccounts){
+                if(bankAccount.id == bankAccountId){ //this is the bank account linked to deposit
+                    bankAccount.Balance__c += deposit.Amount__c; //add deposit to balance
+                   	updatedBankAccounts.add(bankAccount);
+                }
+            }
+        }
+        update updatedBankAccounts;
+    }
+    
+    
+    public static void updateBankAccountOnUpdate(List<Deposit__c> oldDeposits, List<Deposit__c> newDeposits){
+        List<BankAccount__c> bankAccounts = [SELECT id, Balance__c FROM BankAccount__c];
+        List<BankAccount__c> updatedBankAccounts = new List<BankAccount__c>(); //store updated accounts so we can update them (dml)
+        for(Integer i=0; i < oldDeposits.size(); i++){
+            Deposit__c newDeposit = newDeposits[i];
+            Deposit__c oldDeposit = oldDeposits[i];
+            id bankAccountId = newDeposit.Bank_Account__c; //the id of the bank account we want to update
+            Decimal difference = newDeposit.Amount__c - oldDeposit.Amount__c; //the necessary change to bankaccounts balance
+            for(BankAccount__c bankAccount : bankAccounts){
+                if(bankAccount.id == bankAccountId){ //this is the bank account linked to deposit
+                    bankAccount.Balance__c += difference; 
+                   	updatedBankAccounts.add(bankAccount);
+                }
+            }
+        }
+        update updatedBankAccounts;
+    }
+
+}
