@@ -1,0 +1,11 @@
+trigger DepositTrigger on Deposit__c (before insert, before update) {
+    if (Trigger.isBefore){
+        DepositHelper.preventNegatives(Trigger.new);
+        if(Trigger.isInsert){
+            DepositHelper.updateBankAccountOnInsert(Trigger.new);
+        }
+        if(Trigger.isUpdate){
+            DepositHelper.updateBankAccountOnUpdate(Trigger.old, Trigger.new);
+        }
+    }
+}
