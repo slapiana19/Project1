@@ -1,0 +1,82 @@
+@isTest
+public class BudgetTest {
+	@testSetup
+    static void setup(){
+        // create accounts
+        List<String> accNames = new List<String> {'account1', 'CapitalOne', 'BigMoney'};
+        List<BankAccount__c> bankAccounts = new List<BankAccount__c>();
+        for(String bankAccountName : accNames){
+            bankAccounts.add(new BankAccount__c(name=bankAccountName, Balance__c=500));
+        }
+        
+        //create Envelopes
+        List<String> envelopeNames = new List<String>{'food', 'transport', 'clothes', 'entertainment', 'other'};
+        List<Envelope__c> envelopes = new List<Envelope__c>();
+        List<Decimal> amounts = new List<Decimal>{100,25,15,20,55};
+        for( Integer i=0; i < 5; i++){
+            envelopes.add(new envelope__c(name=envelopeNames[i], Budget__c=amounts[i]));
+        }
+        
+        //create expenses
+        List<expense__c> expenses = new List<expense__c>();
+        insert bankAccounts;
+        insert envelopes;
+        expenses.add(new expense__c(name='bananas', amount__c=1.25, Bank_Account__c=bankAccounts[0].Id, Envelope__c=envelopes[0].id));
+        insert expenses;
+    }
+    
+    @isTest
+    public static void createExpenseTest(){
+        Envelope__c food = [SELECT id, name, remaining__c FROM Envelope__c WHERE name = 'food'];
+        BankAccount__c bankAccount = [SELECT id, name, Balance__c FROM BankAccount__c WHERE name = 'account1'];
+        Decimal previousEnvelopeBalance = food.Remaining__c;
+        Decimal previousBankAccountBalance = bankAccount.Balance__c;
+        expense__c expense = new expense__c(name='potatoes', Amount__c=1.32, Bank_Account__c=bankAccount.id, Envelope__c=food.id); 
+        insert expense;
+        
+        food = [SELECT id, name, remaining__c FROM Envelope__c WHERE name = 'food'];
+        bankAccount = [SELECT id, name, Balance__c FROM BankAccount__c WHERE name = 'account1'];
+        Decimal finalEnvelopeBalance = food.Remaining__c;
+        Decimal finalBankAccountBalance = bankAccount.Balance__c;
+        System.assertEquals(finalEnvelopeBalance - previousEnvelopeBalance, -1.32); //check affect on envelope
+        System.assertEquals(finalBankAccountBalance - previousBankAccountBalance, -1.32); //check affect on envelope
+        
+        
+    }
+    
+    
+    
+        @isTest
+    public static void updateExpenseTest(){
+        Envelope__c envelope = [SELECT id, name, remaining__c FROM Envelope__c WHERE name = 'food'];
+        BankAccount__c bankAccount = [SELECT id, name, Balance__c FROM BankAccount__c WHERE name = 'account1'];
+        Expense__c expense = [SELECT id, name, Amount__c FROM Expense__c WHERE name='bananas']; //Amount__c is initially 1.25
+        Decimal previousEnvelopeBalance = envelope.Remaining__c;
+        Decimal previousBankAccountBalance = bankAccount.Balance__c;
+		expense.Amount__c = 1.20;        
+        update expense;
+        envelope = [SELECT id, name, remaining__c FROM Envelope__c WHERE name = 'food'];
+        bankAccount = [SELECT id, name, Balance__c FROM BankAccount__c WHERE name = 'account1'];
+        Decimal finalEnvelopeBalance = envelope.Remaining__c;
+        Decimal finalBankAccountBalance = bankAccount.Balance__c;
+        System.assertEquals(finalEnvelopeBalance - previousEnvelopeBalance, 0.05); //check affect on envelope
+        System.assertEquals(finalBankAccountBalance - previousBankAccountBalance, 0.05);//check affect on envelope
+        
+        
+    }
+    
+    
+    @isTest
+    public static void depositTest(){
+        BankAccount__c bankAccount = [SELECT id, name, Balance__c FROM BankAccount__c WHERE name = 'BigMoney'];
+        Decimal previousBankAccountBalance = bankAccount.Balance__c;
+        Deposit__c deposit = new Deposit__c(name='money', Amount__c=11.11, Bank_Account__c=bankAccount.id);
+        insert deposit;
+        bankAccount = [SELECT id, name, Balance__c FROM BankAccount__c WHERE name = 'BigMoney'];
+        Decimal newBankAccountBalance = bankAccount.Balance__c;
+        System.assertEquals(newBankAccountBalance-previousBankAccountBalance, 11.11);
+        
+    }
+    
+    
+}
